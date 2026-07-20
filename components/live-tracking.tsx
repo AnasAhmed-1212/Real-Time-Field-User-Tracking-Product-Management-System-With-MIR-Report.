@@ -28,6 +28,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
+import { loadGoogleMaps } from "@/lib/google-maps"
 
 type UserStatus = "moving" | "inactive" | "offline" | "permission" | "network"
 type MapState = "loading" | "ready" | "preview" | "error"
@@ -64,37 +65,6 @@ const statusStyle: Record<UserStatus, { marker: string; dot: string; label: stri
   offline: { marker: "bg-neutral-500", dot: "bg-neutral-400", label: "Offline" },
   permission: { marker: "bg-red-500", dot: "bg-red-500", label: "Permission disabled" },
   network: { marker: "bg-orange-500", dot: "bg-orange-500", label: "Network issue" },
-}
-
-type GoogleMap = object
-type AdvancedMarker = { addListener: (event: string, callback: () => void) => void }
-type GoogleApi = {
-  maps: {
-    Map: new (element: HTMLElement, options: Record<string, unknown>) => GoogleMap
-    importLibrary: (library: string) => Promise<unknown>
-    marker: { AdvancedMarkerElement: new (options: Record<string, unknown>) => AdvancedMarker }
-  }
-}
-
-declare global {
-  interface Window { google?: GoogleApi }
-}
-
-let googleMapsPromise: Promise<GoogleApi> | null = null
-
-function loadGoogleMaps(apiKey: string) {
-  if (window.google) return Promise.resolve(window.google)
-  if (googleMapsPromise) return googleMapsPromise
-
-  googleMapsPromise = new Promise<GoogleApi>((resolve, reject) => {
-    const script = document.createElement("script")
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=marker&v=weekly`
-    script.async = true
-    script.onload = () => window.google ? resolve(window.google) : reject(new Error("Google Maps did not initialize"))
-    script.onerror = () => reject(new Error("Unable to load Google Maps"))
-    document.head.appendChild(script)
-  })
-  return googleMapsPromise
 }
 
 function markerElement(user: FieldUser) {

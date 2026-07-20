@@ -17,6 +17,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { LiveMapPreview } from "@/components/live-map-preview"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 const stats = [
@@ -98,31 +99,7 @@ export default function DashboardPage() {
               </Button>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="relative h-[340px] overflow-hidden bg-[#edf0eb] sm:h-[390px]">
-                <div className="absolute inset-0 opacity-60 [background-image:linear-gradient(#d8ddd5_1px,transparent_1px),linear-gradient(90deg,#d8ddd5_1px,transparent_1px)] [background-size:42px_42px]" />
-                <div className="absolute -left-8 top-20 h-10 w-[115%] rotate-[8deg] border-y border-white bg-[#d7e0ea]" />
-                <div className="absolute left-[38%] top-[-10%] h-[125%] w-8 rotate-[20deg] border-x border-white bg-white/80" />
-                <div className="absolute left-[8%] top-[68%] h-6 w-[86%] -rotate-[6deg] border-y border-white bg-white/80" />
-                {[
-                  { left: "18%", top: "25%", online: true, name: "Ahmed" },
-                  { left: "44%", top: "33%", online: true, name: "Sara" },
-                  { left: "69%", top: "21%", online: false, name: "Hamza" },
-                  { left: "77%", top: "62%", online: true, name: "Ayesha" },
-                  { left: "29%", top: "72%", online: true, name: "Bilal" },
-                  { left: "57%", top: "76%", online: false, name: "Nida" },
-                ].map((marker) => (
-                  <div key={marker.name} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: marker.left, top: marker.top }}>
-                    <span className={`flex size-8 items-center justify-center rounded-full border-2 border-white text-white shadow-lg ${marker.online ? "bg-emerald-500" : "bg-neutral-500"}`}>
-                      <MapPin className="size-4" fill="currentColor" aria-hidden="true" />
-                    </span>
-                    <span className="absolute left-1/2 top-9 -translate-x-1/2 rounded bg-white px-1.5 py-0.5 text-[10px] font-medium shadow-sm">{marker.name}</span>
-                  </div>
-                ))}
-                <div className="absolute bottom-4 left-4 flex items-center gap-4 rounded-lg border bg-white/95 px-3 py-2 text-xs shadow-sm">
-                  <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-emerald-500" />Online</span>
-                  <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-neutral-500" />Offline</span>
-                </div>
-              </div>
+              <LiveMapPreview />
             </CardContent>
           </Card>
 
