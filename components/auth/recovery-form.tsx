@@ -41,7 +41,7 @@ export function RecoveryForm() {
       <Button type="submit" size="lg" className="h-11 w-full" disabled={loading}>
         {loading ? <><LoaderCircle className="animate-spin" /> Sending link…</> : "Send reset link"}
       </Button>
-      <Button render={<Link href="/login" />} variant="ghost" className="w-full">
+      <Button render={<Link href="/login" />} nativeButton={false} variant="ghost" className="w-full">
         <ArrowLeft /> Back to sign in
       </Button>
     </form>

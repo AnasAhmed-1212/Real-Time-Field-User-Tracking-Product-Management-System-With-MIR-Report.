@@ -105,7 +105,8 @@ export function LiveTracking() {
         await Promise.all([google.maps.importLibrary("maps"), google.maps.importLibrary("marker")])
         if (cancelled || !mapElement.current) return
         const map = new google.maps.Map(mapElement.current, {
-          center: { lat: 31.5007, lng: 74.3587 }, zoom: 12, mapId: "LIVE_TRACKING_MAP",
+          center: { lat: 31.5007, lng: 74.3587 }, zoom: 12,
+          mapId: process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || "DEMO_MAP_ID",
           disableDefaultUI: true, zoomControl: true, fullscreenControl: true,
         })
         filteredUsers.filter((user) => user.status !== "permission").forEach((user) => {

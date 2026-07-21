@@ -94,7 +94,7 @@ export default function DashboardPage() {
                 <h2 className="font-semibold">Live map preview</h2>
                 <p className="mt-1 text-xs text-muted-foreground">Latest reported locations from field users</p>
               </div>
-              <Button render={<Link href="/live-tracking" />} variant="outline" size="sm">
+              <Button render={<Link href="/live-tracking" />} nativeButton={false} variant="outline" size="sm">
                 Open live map <ArrowUpRight aria-hidden="true" />
               </Button>
             </CardHeader>

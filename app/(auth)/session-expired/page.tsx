@@ -14,7 +14,7 @@ export default function SessionExpiredPage() {
         <div className="flex size-12 items-center justify-center rounded-full bg-muted">
           <Clock3 className="size-5" aria-hidden="true" />
         </div>
-        <Button render={<Link href="/login" />} size="lg" className="h-11 w-full">Sign in again</Button>
+        <Button render={<Link href="/login" />} nativeButton={false} size="lg" className="h-11 w-full">Sign in again</Button>
       </div>
     </AuthCard>
   )

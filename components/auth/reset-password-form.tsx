@@ -31,7 +31,7 @@ export function ResetPasswordForm() {
           <AlertTitle>Password updated</AlertTitle>
           <AlertDescription>You can now sign in using your new password.</AlertDescription>
         </Alert>
-        <Button render={<Link href="/login" />} size="lg" className="h-11 w-full">Continue to sign in</Button>
+        <Button render={<Link href="/login" />} nativeButton={false} size="lg" className="h-11 w-full">Continue to sign in</Button>
       </div>
     )
   }

@@ -42,7 +42,7 @@ export function LiveMapPreview() {
         const map = new google.maps.Map(mapElement.current, {
           center: { lat: 31.487, lng: 74.336 },
           zoom: 12,
-          mapId: "LIVE_TRACKING_MAP",
+          mapId: process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || "DEMO_MAP_ID",
           disableDefaultUI: true,
           gestureHandling: "cooperative",
         })
