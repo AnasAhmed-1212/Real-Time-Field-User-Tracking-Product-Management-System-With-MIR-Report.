@@ -1,42 +1,45 @@
 "use client"
 
-import { ChangeEvent, DragEvent, FormEvent, useState } from "react"
-import { CheckCircle2, Download, ExternalLink, FileArchive, MoreHorizontal, Plus, Power, Smartphone, UploadCloud, X } from "lucide-react"
+import { FormEvent, useState } from "react"
+import { Plus, RefreshCw } from "lucide-react"
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { ApiError, ApiLoading } from "@/components/api-state"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useAdminResource } from "@/hooks/use-admin-resource"
+import { adminApi } from "@/lib/admin-api"
+import type { ApkRelease } from "@/lib/api-types"
 
-type Release = { id: number; version: string; code: number; date: string; size: string; android: string; notes: string; downloads: number; active: boolean }
-const initial: Release[] = [
-  { id: 1, version: "2.4.0", code: 20400, date: "Jul 18, 2026", size: "28.6 MB", android: "Android 8.0+", notes: "Improved live tracking reliability, offline sync, and attendance fixes.", downloads: 184, active: true },
-  { id: 2, version: "2.3.2", code: 20302, date: "Jun 30, 2026", size: "27.9 MB", android: "Android 8.0+", notes: "Resolved location permission and background sync issues.", downloads: 426, active: false },
-  { id: 3, version: "2.3.0", code: 20300, date: "Jun 10, 2026", size: "27.4 MB", android: "Android 8.0+", notes: "Added activity attachments and product catalog improvements.", downloads: 391, active: false },
-]
+const blank = { version: "", versionCode: "", minimumAndroid: "", releaseNotes: "", fileUrl: "", checksumSha256: "" }
 
 export function ApkReleases() {
-  const [releases, setReleases] = useState(initial); const [uploadOpen, setUploadOpen] = useState(false)
-  const current = releases.find((release) => release.active) ?? releases[0]
-  function addRelease(event: FormEvent<HTMLFormElement>, file: File | null) { event.preventDefault(); const data = new FormData(event.currentTarget); if (file) data.set("apk", file); const version = String(data.get("version")); setReleases((items) => [{ id: Date.now(), version, code: Number(data.get("code")), date: "Jul 21, 2026", size: file ? `${(file.size / 1024 / 1024).toFixed(1)} MB` : "—", android: String(data.get("android")), notes: String(data.get("notes")), downloads: 0, active: false }, ...items]); setUploadOpen(false) }
-  function activate(id: number) { setReleases((items) => items.map((release) => ({ ...release, active: release.id === id }))) }
-  return <main className="flex-1 bg-muted/25 p-4 sm:p-6 xl:p-8"><div className="mx-auto max-w-[1600px] space-y-5"><div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center"><div><h1 className="text-2xl font-semibold tracking-tight">APK releases</h1><p className="mt-1 text-sm text-muted-foreground">Publish and manage Android application releases.</p></div><div className="flex gap-2"><Button render={<a href="/download" target="_blank" />} nativeButton={false} variant="outline"><ExternalLink /> Public page</Button><Button onClick={() => setUploadOpen(true)}><Plus /> Upload new APK</Button></div></div>
-    <Card className="overflow-hidden rounded-xl bg-neutral-950 text-white shadow-none"><CardContent className="grid gap-6 p-6 md:grid-cols-[auto_1fr_auto] md:items-center"><span className="flex size-14 items-center justify-center rounded-2xl bg-white text-neutral-950"><Smartphone className="size-7" /></span><div><div className="flex flex-wrap items-center gap-2"><p className="text-sm text-white/60">Current production release</p><Badge variant="success">Active</Badge></div><h2 className="mt-1 text-3xl font-semibold">Version {current.version}</h2><p className="mt-2 text-sm text-white/60">Code {current.code} · {current.size} · {current.android} · Released {current.date}</p></div><div className="md:text-right"><p className="text-2xl font-semibold">{current.downloads}</p><p className="text-xs text-white/60">downloads</p></div></CardContent></Card>
-    <Card className="overflow-visible rounded-xl shadow-none"><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead>Version</TableHead><TableHead>Version code</TableHead><TableHead>Release date</TableHead><TableHead>File size</TableHead><TableHead>Minimum Android</TableHead><TableHead>Release notes</TableHead><TableHead>Downloads</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader><TableBody>{releases.map((release) => <TableRow key={release.id}><TableCell className="font-semibold">v{release.version}</TableCell><TableCell className="font-mono text-xs">{release.code}</TableCell><TableCell className="whitespace-nowrap text-muted-foreground">{release.date}</TableCell><TableCell>{release.size}</TableCell><TableCell className="whitespace-nowrap">{release.android}</TableCell><TableCell><p className="max-w-sm min-w-64 text-muted-foreground">{release.notes}</p></TableCell><TableCell>{release.downloads}</TableCell><TableCell><Badge variant={release.active ? "success" : "secondary"}>{release.active ? "Active" : "Inactive"}</Badge></TableCell><TableCell className="text-right"><DropdownMenu><DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" />}><MoreHorizontal /></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem><Download /> Download APK</DropdownMenuItem>{!release.active && <DropdownMenuItem onClick={() => activate(release.id)}><Power /> Set as active</DropdownMenuItem>}</DropdownMenuContent></DropdownMenu></TableCell></TableRow>)}</TableBody></Table></CardContent></Card>
-    <Alert><CheckCircle2 /><AlertTitle>APK storage guidance</AlertTitle><AlertDescription>Upload the binary to object storage using a signed URL. Store only version metadata, the storage URL, and checksum in the database.</AlertDescription></Alert>
-  </div><UploadApkSheet open={uploadOpen} onOpenChange={setUploadOpen} onSubmit={addRelease} /></main>
-}
+  const { data, loading, error, refresh } = useAdminResource<ApkRelease[]>("releases", [])
+  const [form, setForm] = useState(blank)
+  const [show, setShow] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [actionError, setActionError] = useState("")
 
-function UploadApkSheet({ open, onOpenChange, onSubmit }: { open: boolean; onOpenChange: (open: boolean) => void; onSubmit: (event: FormEvent<HTMLFormElement>, file: File | null) => void }) {
-  const [file, setFile] = useState<File | null>(null); const [error, setError] = useState("")
-  function accept(next: File) { setError(""); if (!next.name.toLowerCase().endsWith(".apk")) { setError("Choose a valid Android .apk file."); return } if (next.size > 150 * 1024 * 1024) { setError("APK exceeds the 150 MB limit."); return } setFile(next) }
-  function change(event: ChangeEvent<HTMLInputElement>) { const next = event.target.files?.[0]; if (next) accept(next) }
-  function drop(event: DragEvent<HTMLLabelElement>) { event.preventDefault(); const next = event.dataTransfer.files[0]; if (next) accept(next) }
-  return <Sheet open={open} onOpenChange={onOpenChange}><SheetContent className="w-full overflow-y-auto sm:max-w-xl"><SheetHeader className="border-b p-6"><SheetTitle>Upload new APK</SheetTitle><SheetDescription>Add the binary and Android release metadata.</SheetDescription></SheetHeader><form onSubmit={(event) => onSubmit(event, file)}><div className="grid gap-5 p-6 sm:grid-cols-2"><Field label="Version" name="version" placeholder="2.5.0" /><Field label="Version code" name="code" placeholder="20500" type="number" /><Field label="Minimum Android" name="android" placeholder="Android 8.0+" className="sm:col-span-2" /><label className="space-y-2 text-sm font-medium sm:col-span-2">Release notes<textarea name="notes" required rows={5} className="mt-2 w-full rounded-lg border bg-background p-2.5 font-normal" /></label><div className="space-y-2 sm:col-span-2"><Label>APK file</Label>{file ? <div className="flex items-center gap-3 rounded-xl border p-4"><span className="flex size-10 items-center justify-center rounded-lg bg-muted"><FileArchive className="size-5" /></span><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{file.name}</p><p className="text-xs text-muted-foreground">{(file.size / 1024 / 1024).toFixed(1)} MB · Ready to upload</p></div><Button type="button" variant="ghost" size="icon-sm" onClick={() => setFile(null)}><X /></Button></div> : <label onDragOver={(event) => event.preventDefault()} onDrop={drop} className="flex cursor-pointer flex-col items-center rounded-xl border-2 border-dashed p-8 text-center hover:bg-muted/40"><UploadCloud className="size-8 text-muted-foreground" /><p className="mt-3 text-sm font-medium">Drop the APK here or browse</p><p className="mt-1 text-xs text-muted-foreground">Android APK · Maximum 150 MB</p><input type="file" accept=".apk,application/vnd.android.package-archive" onChange={change} className="sr-only" /></label>}{error && <p className="text-xs text-destructive">{error}</p>}</div></div><SheetFooter className="border-t"><Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button><Button type="submit" disabled={!file}>Publish release</Button></SheetFooter></form></SheetContent></Sheet>
+  async function create(event: FormEvent) {
+    event.preventDefault(); setSaving(true)
+    try { await adminApi("releases", { method: "POST", body: JSON.stringify({ ...form, versionCode: Number(form.versionCode) }) }); setForm(blank); setShow(false); await refresh() }
+    catch (reason) { setActionError(reason instanceof Error ? reason.message : "Unable to create release.") }
+    finally { setSaving(false) }
+  }
+  async function activate(id: string) {
+    try { await adminApi("releases/" + id + "/activate", { method: "PATCH" }); await refresh() }
+    catch (reason) { setActionError(reason instanceof Error ? reason.message : "Unable to activate release.") }
+  }
+
+  return <main className="flex-1 bg-muted/20 p-4 sm:p-6"><div className="mx-auto max-w-7xl space-y-5">
+    <div className="flex flex-wrap items-center justify-between gap-3"><div><h1 className="text-2xl font-semibold">Android releases</h1><p className="text-sm text-muted-foreground">Publish real APK metadata and download URLs.</p></div><div className="flex gap-2"><Button variant="outline" onClick={() => refresh()}><RefreshCw /> Refresh</Button><Button onClick={() => setShow((value) => !value)}><Plus /> New release</Button></div></div>
+    {(error || actionError) && <ApiError message={error || actionError} />}
+    {show && <Card><CardHeader><h2 className="font-semibold">Create release</h2><p className="text-xs text-muted-foreground">Upload the APK to object storage first, then paste its HTTPS URL here.</p></CardHeader><CardContent><form onSubmit={create} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{Object.entries(form).map(([key, value]) => <Label key={key} className="gap-2 capitalize">{key.replace(/([A-Z])/g, " $1")}<Input required={!["checksumSha256"].includes(key)} type={key === "versionCode" ? "number" : key === "fileUrl" ? "url" : "text"} min={key === "versionCode" ? 1 : undefined} value={value} onChange={(event) => setForm((current) => ({ ...current, [key]: event.target.value }))} /></Label>)}<div className="flex items-end gap-2"><Button disabled={saving}>{saving ? "Saving…" : "Create release"}</Button><Button type="button" variant="outline" onClick={() => setShow(false)}>Cancel</Button></div></form></CardContent></Card>}
+    <Card className="overflow-hidden">{loading ? <ApiLoading label="Loading releases…" /> : <Table><TableHeader><TableRow><TableHead>Version</TableHead><TableHead>Android</TableHead><TableHead>Published</TableHead><TableHead>Downloads</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Action</TableHead></TableRow></TableHeader><TableBody>{data.map((release) => <TableRow key={release.id}><TableCell><div className="font-medium">{release.version} ({release.versionCode})</div><div className="max-w-lg truncate text-xs text-muted-foreground">{release.releaseNotes}</div></TableCell><TableCell>{release.minimumAndroid}+</TableCell><TableCell>{new Date(release.publishedAt).toLocaleString()}</TableCell><TableCell>{release.downloadCount}</TableCell><TableCell><Badge variant={release.active ? "success" : "secondary"}>{release.active ? "Active" : "Inactive"}</Badge></TableCell><TableCell className="space-x-2 text-right"><Button render={<a href={release.fileUrl} target="_blank" rel="noreferrer" />} nativeButton={false} size="sm" variant="outline">APK</Button>{!release.active && <Button size="sm" onClick={() => activate(release.id)}>Activate</Button>}</TableCell></TableRow>)}</TableBody></Table>}
+      {!loading && !data.length && <p className="p-10 text-center text-sm text-muted-foreground">No APK releases have been published.</p>}
+    </Card>
+  </div></main>
 }
-function Field({ label, name, placeholder, type = "text", className = "" }: { label: string; name: string; placeholder: string; type?: string; className?: string }) { return <label className={`space-y-2 text-sm font-medium ${className}`}>{label}<Input name={name} type={type} placeholder={placeholder} required className="mt-2 h-10 font-normal" /></label> }

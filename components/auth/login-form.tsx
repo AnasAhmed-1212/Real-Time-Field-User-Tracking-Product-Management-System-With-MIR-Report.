@@ -9,6 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { authApi } from "@/lib/admin-api"
 
 export function LoginForm() {
   const router = useRouter()
@@ -17,7 +18,7 @@ export function LoginForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError("")
 
@@ -36,12 +37,15 @@ export function LoginForm() {
     }
 
     setLoading(true)
-    const lifetime = remember ? "; max-age=604800" : ""
-    window.setTimeout(() => {
-      document.cookie = `admin_session=demo-admin; path=/; SameSite=Lax${lifetime}`
-      router.replace("/")
+    try {
+      await authApi("login", { method: "POST", body: JSON.stringify({ identity, password, remember }) })
+      const requested = new URLSearchParams(window.location.search).get("next")
+      router.replace(requested?.startsWith("/") && !requested.startsWith("//") ? requested : "/")
       router.refresh()
-    }, 700)
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Unable to sign in.")
+      setLoading(false)
+    }
   }
 
   return (

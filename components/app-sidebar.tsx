@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   Activity,
   Box,
@@ -12,7 +12,6 @@ import {
   Clock3,
   Download,
   Gauge,
-  KeyRound,
   LogOut,
   MapPinned,
   Settings,
@@ -33,6 +32,8 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar"
+import { authApi } from "@/lib/admin-api"
+import type { AdminProfile } from "@/lib/api-types"
 
 const navigation = [
   { title: "Dashboard", href: "/", icon: Gauge },
@@ -54,9 +55,12 @@ export function AppSidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const [accountOpen, setAccountOpen] = useState(false)
+  const [profile, setProfile] = useState<AdminProfile | null>(null)
 
-  function logout() {
-    document.cookie = "admin_session=; path=/; max-age=0; SameSite=Lax"
+  useEffect(() => { authApi<AdminProfile>("session").then(setProfile).catch(() => undefined) }, [])
+
+  async function logout() {
+    await authApi("logout", { method: "POST" }).catch(() => undefined)
     router.replace("/login")
     router.refresh()
   }
@@ -146,8 +150,8 @@ export function AppSidebar() {
                 <UserRound className="size-4.5" aria-hidden="true" />
               </span>
               <span className="flex min-w-0 flex-1 flex-col leading-tight">
-                <span className="truncate font-medium">Administrator</span>
-                <span className="truncate text-xs text-sidebar-foreground/65">admin@example.com</span>
+                <span className="truncate font-medium">{profile?.name || "Administrator"}</span>
+                <span className="truncate text-xs text-sidebar-foreground/65">{profile?.email || "Signed in"}</span>
               </span>
               <ChevronsUpDown className="size-4 group-data-[collapsible=icon]:hidden" aria-hidden="true" />
             </SidebarMenuButton>
@@ -155,16 +159,12 @@ export function AppSidebar() {
           {accountOpen && (
             <>
               <SidebarMenuItem className="group-data-[collapsible=icon]:hidden">
-                <SidebarMenuButton
-                  render={<Link href="/change-password" />}
-                  className="h-8 gap-3 px-2"
-                >
-                  <KeyRound aria-hidden="true" />
-                  <span>Change password</span>
+                <SidebarMenuButton render={<Link href="/profile" />} className="h-8 gap-3 px-2">
+                  <UserRound aria-hidden="true" /><span>Profile</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem className="group-data-[collapsible=icon]:hidden">
-                <SidebarMenuButton type="button" onClick={logout} className="h-8 gap-3 px-2">
+                <SidebarMenuButton type="button" onClick={() => { void logout() }} className="h-8 gap-3 px-2">
                   <LogOut aria-hidden="true" />
                   <span>Logout</span>
                 </SidebarMenuButton>

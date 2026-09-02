@@ -1,33 +1,72 @@
 "use client"
 
-import { FormEvent, useState } from "react"
-import { Bell, Building2, Check, Clock3, Database, MapPin, Palette, Save, ShieldCheck, Smartphone } from "lucide-react"
+import { FormEvent, useEffect, useState } from "react"
+import { Check, Save } from "lucide-react"
 
+import { ApiError, ApiLoading } from "@/components/api-state"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ThemeToggle } from "@/components/theme-toggle"
+import { Label } from "@/components/ui/label"
+import { useAdminResource } from "@/hooks/use-admin-resource"
+import { adminApi } from "@/lib/admin-api"
 
-export function SettingsPage() {
-  const [saved, setSaved] = useState(false)
-  function save(event: FormEvent<HTMLFormElement>) { event.preventDefault(); setSaved(true); window.setTimeout(() => setSaved(false), 2500) }
-  return <main className="flex-1 bg-muted/25 p-4 sm:p-6 xl:p-8"><form onSubmit={save} className="mx-auto max-w-6xl space-y-5"><div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center"><div><h1 className="text-2xl font-semibold tracking-tight">Settings</h1><p className="mt-1 text-sm text-muted-foreground">Configure organization, tracking, attendance, notifications, and security.</p></div><Button type="submit"><Save /> Save changes</Button></div>{saved && <Alert variant="success"><Check /><AlertTitle>Settings saved</AlertTitle><AlertDescription>Your configuration changes have been applied.</AlertDescription></Alert>}
-    <Tabs defaultValue="organization"><div className="overflow-x-auto"><TabsList className="h-auto min-w-max flex-wrap justify-start gap-1 p-1"><Tab value="organization" icon={Building2}>Organization</Tab><Tab value="tracking" icon={MapPin}>Tracking</Tab><Tab value="attendance" icon={Clock3}>Attendance</Tab><Tab value="notifications" icon={Bell}>Notifications</Tab><Tab value="security" icon={ShieldCheck}>Security</Tab><Tab value="appearance" icon={Palette}>Appearance</Tab><Tab value="data" icon={Database}>Data & system</Tab></TabsList></div>
-      <TabsContent value="organization"><SettingsCard title="Organization profile" description="Company details used throughout the administrator and field applications."><div className="grid gap-5 sm:grid-cols-2"><Field label="Company name" defaultValue="Acme Distribution Ltd." /><Field label="Administrator email" type="email" defaultValue="admin@example.com" /><Field label="Support phone" defaultValue="+92 42 1234 5678" /><SelectField label="Timezone" defaultValue="Asia/Karachi"><option>Asia/Karachi</option><option>UTC</option><option>Asia/Dubai</option></SelectField><SelectField label="Date format" defaultValue="DD/MM/YYYY"><option>DD/MM/YYYY</option><option>MM/DD/YYYY</option><option>YYYY-MM-DD</option></SelectField><SelectField label="Default language" defaultValue="English"><option>English</option><option>Urdu</option></SelectField></div></SettingsCard></TabsContent>
-      <TabsContent value="tracking"><SettingsCard title="Live tracking" description="Control how field locations are collected and when locations become stale."><div className="space-y-5"><Toggle label="Enable live tracking" description="Receive field-user location updates during working hours." defaultChecked /><Toggle label="Background tracking" description="Allow the Android application to report locations while minimized." defaultChecked /><Toggle label="High-accuracy GPS" description="Prefer GPS accuracy over lower battery consumption." defaultChecked /><div className="grid gap-5 sm:grid-cols-3"><Field label="Update interval (seconds)" type="number" defaultValue="30" /><Field label="Inactive after (minutes)" type="number" defaultValue="5" /><Field label="Stale after (minutes)" type="number" defaultValue="15" /></div><Toggle label="Track outside assigned areas" description="Continue tracking when a user leaves their assigned territory." /></div></SettingsCard></TabsContent>
-      <TabsContent value="attendance"><SettingsCard title="Attendance rules" description="Define the expected working day and automated attendance behavior."><div className="grid gap-5 sm:grid-cols-2"><Field label="Workday starts" type="time" defaultValue="09:00" /><Field label="Workday ends" type="time" defaultValue="18:00" /><Field label="Late grace period (minutes)" type="number" defaultValue="15" /><Field label="Minimum full-day duration (hours)" type="number" defaultValue="8" /></div><div className="mt-6 space-y-5"><Toggle label="Require location for check-in" description="Block check-in when precise location is unavailable." defaultChecked /><Toggle label="Automatic check-out" description="Check users out automatically at the configured end time." /><Toggle label="Allow manual corrections" description="Administrators can correct attendance with a mandatory audit reason." defaultChecked /></div></SettingsCard></TabsContent>
-      <TabsContent value="notifications"><SettingsCard title="Notification preferences" description="Choose which operational events should alert administrators."><div className="space-y-5"><Toggle label="User goes offline" description="Notify when an online user stops reporting beyond the stale threshold." defaultChecked /><Toggle label="Location permission disabled" description="Notify immediately when a user disables location access." defaultChecked /><Toggle label="Late or absent user" description="Send an attendance alert after the grace period." defaultChecked /><Toggle label="Flagged activity" description="Notify when an activity requires administrator review." defaultChecked /><Toggle label="New APK download milestone" description="Notify for every 100 application downloads." /></div><div className="mt-6 grid gap-5 sm:grid-cols-2"><SelectField label="Notification channel" defaultValue="In-app and email"><option>In-app only</option><option>In-app and email</option></SelectField><Field label="Alert recipient" type="email" defaultValue="operations@example.com" /></div></SettingsCard></TabsContent>
-      <TabsContent value="security"><SettingsCard title="Security and sessions" description="Administrator access and field account protection."><div className="space-y-5"><Toggle label="Require administrator 2FA" description="Require a second verification step for administrator login." /><Toggle label="Force password change after reset" description="Temporary passwords must be changed at next login." defaultChecked /><Toggle label="Lock repeated failed logins" description="Lock an account after five failed login attempts." defaultChecked /></div><div className="mt-6 grid gap-5 sm:grid-cols-2"><Field label="Administrator session (minutes)" type="number" defaultValue="60" /><Field label="Field app session (days)" type="number" defaultValue="30" /><Field label="Password minimum length" type="number" defaultValue="8" /><Field label="Audit log retention (days)" type="number" defaultValue="365" /></div></SettingsCard></TabsContent>
-      <TabsContent value="appearance"><SettingsCard title="Appearance" description="Personalize how the administrator portal is displayed."><div className="flex items-center justify-between rounded-xl border p-4"><div><p className="text-sm font-medium">Color theme</p><p className="mt-1 text-xs text-muted-foreground">Switch between light and dark mode. Your choice is saved on this device.</p></div><ThemeToggle /></div><div className="mt-5 grid gap-5 sm:grid-cols-2"><SelectField label="Sidebar default" defaultValue="Expanded"><option>Expanded</option><option>Collapsed</option></SelectField><SelectField label="Table density" defaultValue="Comfortable"><option>Comfortable</option><option>Compact</option></SelectField><SelectField label="Map style" defaultValue="Standard"><option>Standard</option><option>Light</option><option>Satellite</option></SelectField><SelectField label="Dashboard refresh" defaultValue="30 seconds"><option>15 seconds</option><option>30 seconds</option><option>1 minute</option></SelectField></div></SettingsCard></TabsContent>
-      <TabsContent value="data"><SettingsCard title="Data and system" description="Retention, storage, and mobile application configuration."><div className="grid gap-5 sm:grid-cols-2"><Field label="Location history retention (days)" type="number" defaultValue="90" /><Field label="Activity attachment retention (days)" type="number" defaultValue="365" /><Field label="Maximum image upload (MB)" type="number" defaultValue="5" /><Field label="Maximum APK upload (MB)" type="number" defaultValue="150" /></div><div className="mt-6 space-y-5"><Toggle label="Automatic database backups" description="Create a daily encrypted backup of operational data." defaultChecked /><Toggle label="Simplify long GPS routes" description="Reduce coordinate volume before rendering histories on maps." defaultChecked /><Toggle label="APK checksum verification" description="Calculate and publish a SHA-256 checksum for releases." defaultChecked /></div><div className="mt-6 rounded-xl border bg-muted/30 p-4"><div className="flex items-center gap-2"><Smartphone className="size-4" /><p className="text-sm font-medium">Field application</p><Badge variant="success">v2.4.0 active</Badge></div><p className="mt-2 text-xs text-muted-foreground">Minimum Android 8.0 · Latest release July 18, 2026</p></div></SettingsCard></TabsContent>
-    </Tabs></form></main>
+type Settings = {
+  organization: { companyName: string; administratorEmail: string; supportPhone: string; timezone: string; dateFormat: string; defaultLanguage: string }
+  tracking: { enabled: boolean; highAccuracy: boolean; updateIntervalSeconds: number; inactiveAfterMinutes: number; staleAfterMinutes: number }
+  attendance: { workdayStarts: string; workdayEnds: string; lateGraceMinutes: number; minimumFullDayHours: number; requireLocationForCheckIn: boolean }
+  security: { administratorSessionMinutes: number; fieldSessionDays: number; passwordMinimumLength: number; auditLogRetentionDays: number }
+  data: { locationHistoryRetentionDays: number; activityAttachmentRetentionDays: number; maximumImageUploadMb: number; maximumApkUploadMb: number }
 }
 
-function Tab({ value, icon: Icon, children }: { value: string; icon: typeof Building2; children: React.ReactNode }) { return <TabsTrigger value={value} className="flex items-center gap-1.5"><Icon className="size-3.5" />{children}</TabsTrigger> }
-function SettingsCard({ title, description, children }: { title: string; description: string; children: React.ReactNode }) { return <Card className="rounded-xl shadow-none"><CardContent className="p-5 sm:p-6"><div className="mb-6"><h2 className="font-semibold">{title}</h2><p className="mt-1 text-sm text-muted-foreground">{description}</p></div>{children}</CardContent></Card> }
-function Field({ label, defaultValue, type = "text" }: { label: string; defaultValue: string; type?: string }) { return <label className="space-y-2 text-sm font-medium">{label}<Input type={type} defaultValue={defaultValue} className="mt-2 h-10 font-normal" /></label> }
-function SelectField({ label, defaultValue, children }: { label: string; defaultValue: string; children: React.ReactNode }) { return <label className="space-y-2 text-sm font-medium">{label}<select defaultValue={defaultValue} className="mt-2 h-10 w-full rounded-lg border bg-background px-2.5 font-normal">{children}</select></label> }
-function Toggle({ label, description, defaultChecked = false }: { label: string; description: string; defaultChecked?: boolean }) { return <label className="flex cursor-pointer items-start justify-between gap-4"><span><span className="block text-sm font-medium">{label}</span><span className="mt-1 block text-xs text-muted-foreground">{description}</span></span><span className="relative mt-0.5 shrink-0"><input type="checkbox" defaultChecked={defaultChecked} className="peer sr-only" /><span className="block h-6 w-11 rounded-full bg-input transition-colors peer-checked:bg-neutral-900 dark:peer-checked:bg-white" /><span className="absolute left-1 top-1 size-4 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5 dark:peer-checked:bg-neutral-900" /></span></label> }
+const empty: Settings = {
+  organization: { companyName: "", administratorEmail: "", supportPhone: "", timezone: "Asia/Karachi", dateFormat: "DD/MM/YYYY", defaultLanguage: "English" },
+  tracking: { enabled: true, highAccuracy: true, updateIntervalSeconds: 30, inactiveAfterMinutes: 5, staleAfterMinutes: 15 },
+  attendance: { workdayStarts: "09:00", workdayEnds: "18:00", lateGraceMinutes: 15, minimumFullDayHours: 8, requireLocationForCheckIn: true },
+  security: { administratorSessionMinutes: 60, fieldSessionDays: 30, passwordMinimumLength: 8, auditLogRetentionDays: 365 },
+  data: { locationHistoryRetentionDays: 90, activityAttachmentRetentionDays: 365, maximumImageUploadMb: 5, maximumApkUploadMb: 150 },
+}
+
+export function SettingsPage() {
+  const resource = useAdminResource<Settings>("settings", empty)
+  const [form, setForm] = useState(empty)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [actionError, setActionError] = useState("")
+  useEffect(() => {
+    if (resource.loading) return
+    const timer = window.setTimeout(() => setForm(resource.data), 0)
+    return () => window.clearTimeout(timer)
+  }, [resource.data, resource.loading])
+
+  function update(section: keyof Settings, key: string, value: string | number | boolean) {
+    setForm((current) => ({ ...current, [section]: { ...current[section], [key]: value } }))
+  }
+  async function save(event: FormEvent) {
+    event.preventDefault(); setSaving(true); setSaved(false); setActionError("")
+    try { const next = await adminApi<Settings>("settings", { method: "PUT", body: JSON.stringify(form) }); setForm(next); setSaved(true) }
+    catch (reason) { setActionError(reason instanceof Error ? reason.message : "Unable to save settings.") }
+    finally { setSaving(false) }
+  }
+
+  if (resource.loading) return <main className="flex-1 p-6"><ApiLoading label="Loading settings…" /></main>
+  return <main className="flex-1 bg-muted/20 p-4 sm:p-6"><form onSubmit={save} className="mx-auto max-w-6xl space-y-5">
+    <div className="flex items-center justify-between"><div><h1 className="text-2xl font-semibold">Settings</h1><p className="text-sm text-muted-foreground">Server-backed operational configuration.</p></div><Button disabled={saving}><Save />{saving ? "Saving…" : "Save changes"}</Button></div>
+    {(resource.error || actionError) && <ApiError message={resource.error || actionError} />}
+    {saved && <Alert variant="success"><Check /><AlertTitle>Settings saved</AlertTitle><AlertDescription>The database configuration is now active.</AlertDescription></Alert>}
+    <div className="grid gap-5 lg:grid-cols-2">
+      <Section title="Organization">{Object.entries(form.organization).map(([key, value]) => <TextField key={key} label={key} value={String(value)} type={key.includes("Email") ? "email" : "text"} onChange={(next) => update("organization", key, next)} />)}</Section>
+      <Section title="Live tracking"><Toggle label="Tracking enabled" checked={form.tracking.enabled} onChange={(value) => update("tracking", "enabled", value)} /><Toggle label="High accuracy" checked={form.tracking.highAccuracy} onChange={(value) => update("tracking", "highAccuracy", value)} />{(["updateIntervalSeconds", "inactiveAfterMinutes", "staleAfterMinutes"] as const).map((key) => <NumberField key={key} label={key} value={form.tracking[key]} onChange={(value) => update("tracking", key, value)} />)}</Section>
+      <Section title="Attendance"><TextField label="workdayStarts" value={form.attendance.workdayStarts} type="time" onChange={(value) => update("attendance", "workdayStarts", value)} /><TextField label="workdayEnds" value={form.attendance.workdayEnds} type="time" onChange={(value) => update("attendance", "workdayEnds", value)} /><NumberField label="lateGraceMinutes" value={form.attendance.lateGraceMinutes} onChange={(value) => update("attendance", "lateGraceMinutes", value)} /><NumberField label="minimumFullDayHours" value={form.attendance.minimumFullDayHours} onChange={(value) => update("attendance", "minimumFullDayHours", value)} /><Toggle label="Require location for check-in" checked={form.attendance.requireLocationForCheckIn} onChange={(value) => update("attendance", "requireLocationForCheckIn", value)} /></Section>
+      <Section title="Security">{Object.entries(form.security).map(([key, value]) => <NumberField key={key} label={key} value={value} onChange={(next) => update("security", key, next)} />)}</Section>
+      <Section title="Retention and uploads">{Object.entries(form.data).map(([key, value]) => <NumberField key={key} label={key} value={value} onChange={(next) => update("data", key, next)} />)}</Section>
+    </div>
+  </form></main>
+}
+
+function human(value: string) { return value.replace(/([A-Z])/g, " $1").replace(/^./, (letter) => letter.toUpperCase()) }
+function Section({ title, children }: { title: string; children: React.ReactNode }) { return <Card><CardHeader><h2 className="font-semibold">{title}</h2></CardHeader><CardContent className="grid gap-4 sm:grid-cols-2">{children}</CardContent></Card> }
+function TextField({ label, value, type, onChange }: { label: string; value: string; type: string; onChange: (value: string) => void }) { return <Label className="gap-2">{human(label)}<Input type={type} value={value} onChange={(event) => onChange(event.target.value)} /></Label> }
+function NumberField({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) { return <Label className="gap-2">{human(label)}<Input type="number" min={0} value={value} onChange={(event) => onChange(Number(event.target.value))} /></Label> }
+function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) { return <label className="flex items-center gap-3 text-sm font-medium"><input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="size-4" />{label}</label> }

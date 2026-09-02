@@ -1,9 +1,30 @@
-import type { Metadata } from "next"
-import { AlertTriangle, CheckCircle2, Download, FileCheck2, ShieldCheck, Smartphone } from "lucide-react"
+"use client"
 
+import { useEffect, useState } from "react"
+import { AlertTriangle, Download, FileCheck2, LoaderCircle, Smartphone } from "lucide-react"
+
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import type { ApkRelease } from "@/lib/api-types"
 
-export const metadata: Metadata = { title: "Download Sales Management for Android" }
-export default function DownloadPage() { return <main className="min-h-svh bg-muted/30 px-5 py-10 sm:py-16"><div className="mx-auto max-w-3xl"><div className="text-center"><span className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-neutral-950 text-white shadow-xl"><Smartphone className="size-8" /></span><Badge variant="success" className="mt-6">Latest stable release</Badge><h1 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">Sales Management</h1><p className="mt-3 text-muted-foreground">Field operations application for authorized company users.</p></div><Card className="mt-8 rounded-2xl shadow-sm"><CardContent className="p-6 sm:p-8"><div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center"><div><p className="text-sm text-muted-foreground">Latest version</p><p className="mt-1 text-2xl font-semibold">Version 2.4.0</p><p className="mt-1 text-sm text-muted-foreground">Released July 18, 2026 · 28.6 MB · Android 8.0+</p></div><Button render={<a href="/downloads/sales-management-2.4.0.apk" download />} nativeButton={false} size="lg" className="h-12 px-6"><Download /> Download APK</Button></div><div className="mt-6 rounded-xl bg-muted p-4"><div className="flex items-center gap-2 text-sm font-medium"><FileCheck2 className="size-4" />SHA-256 checksum</div><code className="mt-2 block break-all text-xs text-muted-foreground">8f2d7a63c41b95e0d1684ca76c9d63a21fe90d582faba31d28eb4c7df3c14b8e</code></div></CardContent></Card><div className="mt-8 grid gap-6 md:grid-cols-2"><section><h2 className="flex items-center gap-2 font-semibold"><CheckCircle2 className="size-4" />Installation instructions</h2><ol className="mt-4 space-y-3 text-sm text-muted-foreground"><li>1. Download the APK using the button above.</li><li>2. Open the downloaded file from your browser or Files app.</li><li>3. If prompted, allow installation from this source.</li><li>4. Tap Install, then sign in using your field account.</li></ol></section><section><h2 className="flex items-center gap-2 font-semibold"><ShieldCheck className="size-4" />Android security notice</h2><div className="mt-4 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><AlertTriangle className="mt-0.5 size-4 shrink-0" /><p>Android warns about apps installed outside Google Play. Only continue if this page was provided by your administrator. You can verify the downloaded file using the checksum above.</p></div></section></div><section className="mt-8 border-t pt-8"><h2 className="font-semibold">What’s new in 2.4.0</h2><ul className="mt-4 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2"><li>• Improved live tracking reliability</li><li>• Faster offline activity synchronization</li><li>• Attendance calculation fixes</li><li>• Better background location handling</li></ul></section><p className="mt-10 text-center text-xs text-muted-foreground">For authorized users only · Contact your administrator for access</p></div></main> }
+export default function DownloadPage() {
+  const [release, setRelease] = useState<ApkRelease | null>(null)
+  const [error, setError] = useState("")
+  useEffect(() => {
+    fetch("/portal-api/public/releases/latest", { cache: "no-store" }).then(async (response) => {
+      if (!response.ok) throw new Error((await response.json().catch(() => null))?.message || "No release is available.")
+      setRelease(await response.json())
+    }).catch((reason) => setError(reason instanceof Error ? reason.message : "Unable to load the release."))
+  }, [])
+
+  return <main className="min-h-svh bg-muted/30 px-5 py-12"><div className="mx-auto max-w-3xl">
+    <div className="text-center"><span className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-neutral-950 text-white"><Smartphone className="size-8" /></span><h1 className="mt-5 text-3xl font-semibold">Sales Management</h1><p className="mt-2 text-muted-foreground">Field operations app for authorized users.</p></div>
+    {!release && !error && <p className="mt-10 flex items-center justify-center gap-2 text-sm text-muted-foreground"><LoaderCircle className="size-4 animate-spin" />Loading current release…</p>}
+    {error && <Alert variant="destructive" className="mt-8"><AlertTriangle /><AlertTitle>Download unavailable</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
+    {release && <><Card className="mt-8"><CardContent className="p-6 sm:p-8"><div className="flex flex-wrap items-center justify-between gap-5"><div><Badge variant="success">Current release</Badge><p className="mt-3 text-2xl font-semibold">Version {release.version}</p><p className="text-sm text-muted-foreground">Published {new Date(release.publishedAt).toLocaleDateString()} · Android {release.minimumAndroid}+</p></div><Button render={<a href={release.fileUrl} />} nativeButton={false} size="lg"><Download /> Download APK</Button></div>{release.checksumSha256 && <div className="mt-6 rounded-xl bg-muted p-4"><p className="flex items-center gap-2 text-sm font-medium"><FileCheck2 className="size-4" />SHA-256 checksum</p><code className="mt-2 block break-all text-xs text-muted-foreground">{release.checksumSha256}</code></div>}</CardContent></Card>
+      <Card className="mt-6"><CardContent className="p-6"><h2 className="font-semibold">Release notes</h2><p className="mt-3 whitespace-pre-wrap text-sm text-muted-foreground">{release.releaseNotes}</p></CardContent></Card></>}
+    <div className="mt-8 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><p className="flex gap-2"><AlertTriangle className="mt-0.5 size-4 shrink-0" />Android may warn about apps installed outside Google Play. Verify the checksum and only install releases supplied by your administrator.</p></div>
+  </div></main>
+}

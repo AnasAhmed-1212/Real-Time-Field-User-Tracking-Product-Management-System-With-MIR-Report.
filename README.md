@@ -1,36 +1,26 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Sales Management administrator portal
 
-## Getting Started
+Next.js 16 portal for real field users, products, sales activity, attendance, live locations, route history, releases, and organization settings.
 
-First, run the development server:
+All operational screens read and write the Express/MongoDB API. Browser code never receives the administrator bearer token: login stores it in a Secure, HttpOnly, SameSite=Lax cookie and same-origin /portal-api route handlers proxy authenticated requests to the backend.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Configuration
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Copy .env.example to .env.local:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+    API_BASE_URL=https://sales-server.vercel.app/api
+    NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=
+    NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID=
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+API_BASE_URL is server-only. If the Express server is deployed on another hostname, update this value. Google Maps is optional: coordinates and route data remain available without it.
 
-## Learn More
+## Run and verify
 
-To learn more about Next.js, take a look at the following resources:
+    npm install
+    npm run dev
+    npm run lint
+    npm run build
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Open http://localhost:3000. The public APK page is /download. APK binaries and product images must be uploaded to durable object storage first; the portal persists their HTTPS URLs and release metadata.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The portal connects server-to-server to https://sales-server.vercel.app/api. Set API_BASE_URL to the same value in the Vercel portal project's Production environment and redeploy after changing it.

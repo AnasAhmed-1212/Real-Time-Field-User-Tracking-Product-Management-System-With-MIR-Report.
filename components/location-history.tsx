@@ -1,35 +1,46 @@
 "use client"
 
 import { useState } from "react"
-import { ChevronLeft, ChevronRight, Clock3, Crosshair, Flag, MapPin, RefreshCw, Route, Satellite } from "lucide-react"
+import { MapPin, RefreshCw } from "lucide-react"
 
+import { ApiError, ApiLoading } from "@/components/api-state"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { RouteHistoryMap } from "@/components/route-history-map"
-
-const points = [
-  { time: "8:42 AM", area: "Main Boulevard, Gulberg III", detail: "Checked in", type: "start" },
-  { time: "9:05 AM", area: "Liberty Market", detail: "Moving · 2.3 km", type: "move" },
-  { time: "9:41 AM", area: "MM Alam Road", detail: "Stopped for 18 minutes", type: "stop" },
-  { time: "10:12 AM", area: "Mini Market", detail: "Retail visit submitted", type: "activity" },
-  { time: "10:48 AM", area: "Jail Road", detail: "Moving · 4.1 km", type: "move" },
-  { time: "11:26 AM", area: "Shadman Market", detail: "Stopped for 26 minutes", type: "stop" },
-  { time: "12:03 PM", area: "Mall Road", detail: "Moving · 3.8 km", type: "move" },
-  { time: "12:34 PM", area: "Anarkali", detail: "Latest reported location", type: "end" },
-]
+import { RouteHistoryMap, type HistoryPoint } from "@/components/route-history-map"
+import { useAdminResource } from "@/hooks/use-admin-resource"
+import { adminApi } from "@/lib/admin-api"
+import type { FieldUser } from "@/lib/api-types"
 
 export function LocationHistory() {
-  const [user, setUser] = useState("Ahmed Raza"); const [date, setDate] = useState("2026-07-21"); const [start, setStart] = useState("08:00"); const [end, setEnd] = useState("18:00"); const [page, setPage] = useState(1)
-  const pageSize = 5; const pageCount = Math.ceil(points.length / pageSize); const visible = points.slice((page - 1) * pageSize, page * pageSize)
-  return <main className="flex-1 bg-muted/25 p-4 sm:p-6 xl:p-8"><div className="mx-auto max-w-[1600px] space-y-5"><div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end"><div><h1 className="text-2xl font-semibold tracking-tight">Location history</h1><p className="mt-1 text-sm text-muted-foreground">Review a simplified route for one user and selected date.</p></div><Badge variant="outline" className="w-fit"><Satellite /> 48 GPS updates loaded</Badge></div>
-    <Card className="rounded-xl shadow-none"><CardContent className="grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-[1.3fr_1fr_1fr_1fr_auto]"><label className="text-xs text-muted-foreground">Field user<select value={user} onChange={(event) => setUser(event.target.value)} className="mt-1.5 h-10 w-full rounded-lg border bg-background px-3 text-sm text-foreground"><option>Ahmed Raza</option><option>Sara Khan</option><option>Bilal Ahmed</option><option>Ayesha Malik</option></select></label><label className="text-xs text-muted-foreground">Date<Input type="date" value={date} onChange={(event) => setDate(event.target.value)} className="mt-1.5 h-10" /></label><label className="text-xs text-muted-foreground">Start time<Input type="time" value={start} onChange={(event) => setStart(event.target.value)} className="mt-1.5 h-10" /></label><label className="text-xs text-muted-foreground">End time<Input type="time" value={end} onChange={(event) => setEnd(event.target.value)} className="mt-1.5 h-10" /></label><Button className="self-end" size="lg"><RefreshCw /> Load history</Button></CardContent></Card>
-    <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><Metric icon={Clock3} label="Total tracked duration" value="3h 52m" /><Metric icon={Flag} label="First location" value="Gulberg III" /><Metric icon={MapPin} label="Last location" value="Anarkali" /><Metric icon={Crosshair} label="GPS updates" value="48 points" /></section>
-    <section className="grid gap-5 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.75fr)]"><Card className="overflow-hidden rounded-xl shadow-none"><CardContent className="p-0"><div className="flex items-center justify-between border-b px-5 py-4"><div><h2 className="font-semibold">Route map</h2><p className="mt-1 text-xs text-muted-foreground">{user} · {date} · {start}–{end}</p></div><Badge variant="secondary">Simplified route</Badge></div><RouteHistoryMap /></CardContent></Card>
-      <Card className="rounded-xl shadow-none"><CardContent className="p-0"><div className="border-b px-5 py-4"><h2 className="font-semibold">Location timeline</h2><p className="mt-1 text-xs text-muted-foreground">Meaningful points only</p></div><div className="p-5"><div className="relative ml-3 border-l pl-6">{visible.map((point) => <div key={`${point.time}-${point.area}`} className="relative pb-7 last:pb-0"><span className={`absolute -left-[31px] top-1 size-3 rounded-full border-2 border-white ring-1 ring-border ${point.type === "start" ? "bg-emerald-500" : point.type === "end" ? "bg-red-500" : "bg-neutral-900"}`} /><div className="flex justify-between gap-2"><p className="text-sm font-medium">{point.area}</p><span className="whitespace-nowrap text-xs text-muted-foreground">{point.time}</span></div><p className="mt-1 text-xs text-muted-foreground">{point.detail}</p></div>)}</div><div className="mt-5 flex items-center justify-between border-t pt-4"><span className="text-xs text-muted-foreground">Page {page} of {pageCount}</span><div className="flex gap-2"><Button variant="outline" size="icon-sm" disabled={page === 1} onClick={() => setPage((p) => p - 1)}><ChevronLeft /></Button><Button variant="outline" size="icon-sm" disabled={page === pageCount} onClick={() => setPage((p) => p + 1)}><ChevronRight /></Button></div></div></div></CardContent></Card></section>
-    <div className="flex items-start gap-2 rounded-xl border bg-background p-4 text-xs text-muted-foreground"><Route className="mt-0.5 size-4 shrink-0" /><p>Large location histories are simplified before rendering. The complete coordinate set should be requested in pages from the location-history API and retained for audit or export without sending every point to the map at once.</p></div>
+  const users = useAdminResource<FieldUser[]>("field-users", [])
+  const [userId, setUserId] = useState("")
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [points, setPoints] = useState<HistoryPoint[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+
+  async function load() {
+    const selectedUserId = userId || users.data[0]?.id || ""
+    if (!selectedUserId) return
+    setLoading(true); setError("")
+    try {
+      const from = new Date(date + "T00:00:00").toISOString()
+      const to = new Date(date + "T23:59:59.999").toISOString()
+      setPoints(await adminApi<HistoryPoint[]>("locations/history?userId=" + encodeURIComponent(selectedUserId) + "&from=" + encodeURIComponent(from) + "&to=" + encodeURIComponent(to) + "&limit=2000"))
+    } catch (reason) { setError(reason instanceof Error ? reason.message : "Unable to load location history.") }
+    finally { setLoading(false) }
+  }
+
+  const effectiveUserId = userId || users.data[0]?.id || ""
+  const selected = users.data.find((user) => user.id === effectiveUserId)
+  return <main className="flex-1 bg-muted/20 p-4 sm:p-6"><div className="mx-auto max-w-[1500px] space-y-5">
+    <div><h1 className="text-2xl font-semibold">Location history</h1><p className="text-sm text-muted-foreground">Review the stored route for one mobile user and date.</p></div>
+    {(users.error || error) && <ApiError message={users.error || error} />}
+    <Card><CardContent className="grid gap-4 p-4 sm:grid-cols-[1fr_220px_auto]"><label className="text-xs text-muted-foreground">Field user<select value={effectiveUserId} onChange={(event) => setUserId(event.target.value)} className="mt-1.5 h-10 w-full rounded-md border bg-background px-3 text-sm text-foreground"><option value="">Choose a user</option>{users.data.map((user) => <option key={user.id} value={user.id}>{user.name} · {user.employeeCode}</option>)}</select></label><label className="text-xs text-muted-foreground">Date<Input type="date" value={date} onChange={(event) => setDate(event.target.value)} className="mt-1.5" /></label><Button className="self-end" onClick={load} disabled={!effectiveUserId || loading}><RefreshCw className={loading ? "animate-spin" : ""} /> Load history</Button></CardContent></Card>
+    {users.loading ? <ApiLoading label="Loading field users…" /> : <section className="grid gap-5 xl:grid-cols-[minmax(0,1.7fr)_380px]"><Card className="overflow-hidden"><CardContent className="p-0"><div className="flex items-center justify-between border-b p-4"><div><h2 className="font-semibold">Route map</h2><p className="text-xs text-muted-foreground">{selected?.name || "No user selected"} · {date}</p></div><Badge variant="secondary">{points.length} points</Badge></div><RouteHistoryMap points={points} /></CardContent></Card>
+      <Card><CardContent className="p-0"><div className="border-b p-4"><h2 className="font-semibold">GPS timeline</h2></div><div className="max-h-[570px] divide-y overflow-y-auto">{points.map((point) => <div className="p-4" key={point.id}><div className="flex justify-between gap-2"><p className="flex gap-1 text-sm font-medium"><MapPin className="size-4" />{point.area || point.address || "Coordinates"}</p><span className="text-xs text-muted-foreground">{new Date(point.capturedAt).toLocaleTimeString()}</span></div><p className="mt-1 text-xs text-muted-foreground">{point.latitude.toFixed(6)}, {point.longitude.toFixed(6)} · {point.eventType}</p></div>)}</div>{!points.length && <p className="p-10 text-center text-sm text-muted-foreground">No route loaded.</p>}</CardContent></Card>
+    </section>}
   </div></main>
 }
-
-function Metric({ icon: Icon, label, value }: { icon: typeof Clock3; label: string; value: string }) { return <Card className="rounded-xl shadow-none"><CardContent className="flex items-center gap-3 p-4"><span className="flex size-9 items-center justify-center rounded-lg bg-muted"><Icon className="size-4" /></span><div><p className="font-semibold">{value}</p><p className="text-xs text-muted-foreground">{label}</p></div></CardContent></Card> }
