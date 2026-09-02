@@ -11,7 +11,7 @@ const publicRoutes = new Set([
 
 export function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname
-  const session = request.cookies.get("admin_session")?.value
+  const session = request.cookies.get("sales_admin_session_v2")?.value
   const isPublicRoute = publicRoutes.has(path)
 
   if (!session && !isPublicRoute) {

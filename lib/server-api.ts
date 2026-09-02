@@ -3,7 +3,7 @@ import 'server-only'
 import { cookies } from 'next/headers'
 
 export const serverApiBaseUrl = (process.env.API_BASE_URL || 'https://sales-server.vercel.app/api').replace(/\/$/, '')
-export const adminCookieName = 'admin_session'
+export const adminCookieName = 'sales_admin_session_v2'
 
 export async function backendFetch(path: string, init: RequestInit = {}, authenticated = false) {
   const headers = new Headers(init.headers)
@@ -14,7 +14,20 @@ export async function backendFetch(path: string, init: RequestInit = {}, authent
     if (!token) return new Response(JSON.stringify({ message: 'Authentication required' }), { status: 401, headers: { 'Content-Type': 'application/json' } })
     headers.set('Authorization', `Bearer ${token}`)
   }
-  return fetch(`${serverApiBaseUrl}${path}`, { ...init, headers, cache: 'no-store', signal: AbortSignal.timeout(20_000) })
+  try {
+    return await fetch(`${serverApiBaseUrl}${path}`, {
+      ...init,
+      headers,
+      cache: 'no-store',
+      signal: AbortSignal.timeout(20_000),
+    })
+  } catch (reason) {
+    console.error('Sales API request failed', { baseUrl: serverApiBaseUrl, path, reason })
+    return Response.json(
+      { message: `The sales server at ${serverApiBaseUrl} could not be reached.` },
+      { status: 502 },
+    )
+  }
 }
 
 export async function copyBackendResponse(response: Response) {
