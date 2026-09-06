@@ -19,10 +19,12 @@ export async function adminApi<T>(path: string, init: RequestInit = {}): Promise
   }
   if (!response.ok) {
     const text = await response.text()
-    let payload: { message?: string } | null = null
-    try { payload = JSON.parse(text) as { message?: string } } catch { /* The status below remains actionable. */ }
+    let payload: { message?: string; requestId?: string } | null = null
+    try { payload = JSON.parse(text) as { message?: string; requestId?: string } } catch { /* The status below remains actionable. */ }
     if (response.status === 401 && typeof window !== 'undefined') window.location.assign('/session-expired')
-    throw new ApiError(payload?.message || `The sales API returned HTTP ${response.status}.`, response.status)
+    const requestId = payload?.requestId || response.headers.get('x-request-id')
+    const message = payload?.message || `The sales API returned HTTP ${response.status}.`
+    throw new ApiError(`${message}${requestId ? ` Reference: ${requestId}` : ''}`, response.status)
   }
   if (response.status === 204) return undefined as T
   return response.json() as Promise<T>
