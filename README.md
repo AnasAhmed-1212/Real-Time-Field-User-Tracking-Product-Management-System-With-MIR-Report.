@@ -8,11 +8,11 @@ All operational screens read and write the Express/MongoDB API. Browser code nev
 
 Copy .env.example to .env.local:
 
-    API_BASE_URL=https://sales-server.vercel.app/api
+    API_BASE_URL=http://localhost:5000/api
     NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=
     NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID=
 
-API_BASE_URL is server-only. If the Express server is deployed on another hostname, update this value. Google Maps is optional: coordinates and route data remain available without it.
+API_BASE_URL is server-only. Use `http://localhost:5000/api` locally and `https://YOUR_API.vercel.app/api` in the portal's Vercel Production environment. The value must include `/api`; redeploy the portal after changing it. Google Maps is optional: coordinates and route data remain available without it.
 
 ## Run and verify
 
@@ -23,4 +23,4 @@ API_BASE_URL is server-only. If the Express server is deployed on another hostna
 
 Open http://localhost:3000. The public APK page is /download. APK binaries and product images must be uploaded to durable object storage first; the portal persists their HTTPS URLs and release metadata.
 
-The portal connects server-to-server to https://sales-server.vercel.app/api. Set API_BASE_URL to the same value in the Vercel portal project's Production environment and redeploy after changing it.
+The portal connects server-to-server to the Express API. Set `API_BASE_URL` in every Vercel environment that you use (Production, Preview, and Development as appropriate). The API and portal are separate Vercel projects and both must be redeployed when their code or environment values change.
