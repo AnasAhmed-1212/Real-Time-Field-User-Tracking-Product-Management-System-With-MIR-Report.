@@ -2,7 +2,24 @@ import 'server-only'
 
 import { cookies } from 'next/headers'
 
-export const serverApiBaseUrl = (process.env.API_BASE_URL || 'https://sales-server.vercel.app/api').replace(/\/$/, '')
+const defaultApiBaseUrl = 'https://sales-server.vercel.app/api'
+
+export function normalizeServerApiBaseUrl(value: string | undefined) {
+  let candidate = value?.trim() || defaultApiBaseUrl
+  if (!/^https?:\/\//i.test(candidate)) {
+    const localHost = /^(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?(\/|$)/i.test(candidate)
+    candidate = `${localHost ? 'http' : 'https'}://${candidate}`
+  }
+
+  const url = new URL(candidate)
+  if (!['http:', 'https:'].includes(url.protocol)) throw new Error('API_BASE_URL must use http:// or https://')
+  url.pathname = url.pathname.replace(/\/+$/, '') || '/api'
+  url.search = ''
+  url.hash = ''
+  return url.toString().replace(/\/$/, '')
+}
+
+export const serverApiBaseUrl = normalizeServerApiBaseUrl(process.env.API_BASE_URL)
 export const adminCookieName = 'sales_admin_session_v2'
 
 const transientStatuses = new Set([500, 502, 503, 504])
@@ -50,10 +67,13 @@ export async function backendFetch(path: string, init: RequestInit = {}, authent
   )
 }
 
-export async function copyBackendResponse(response: Response) {
+export async function copyBackendResponse(response: Response, requestMethod?: string) {
   const headers = new Headers()
   headers.set('Content-Type', response.headers.get('content-type') || 'application/json')
   const requestId = response.headers.get('x-request-id')
   if (requestId) headers.set('X-Request-Id', requestId)
+  if (requestMethod?.toUpperCase() === 'HEAD' || [204, 205, 304].includes(response.status)) {
+    return new Response(null, { status: response.status, headers })
+  }
   return new Response(await response.arrayBuffer(), { status: response.status, headers })
 }

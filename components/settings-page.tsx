@@ -52,7 +52,7 @@ export function SettingsPage() {
 
   if (resource.loading) return <main className="flex-1 p-6"><ApiLoading label="Loading settings…" /></main>
   return <main className="flex-1 bg-muted/20 p-4 sm:p-6"><form onSubmit={save} className="mx-auto max-w-6xl space-y-5">
-    <div className="flex items-center justify-between"><div><h1 className="text-2xl font-semibold">Settings</h1><p className="text-sm text-muted-foreground">Server-backed operational configuration.</p></div><Button disabled={saving}><Save />{saving ? "Saving…" : "Save changes"}</Button></div>
+    <div className="flex items-center justify-between"><div><h1 className="text-2xl font-semibold">Settings</h1><p className="text-sm text-muted-foreground">Server-backed operational configuration.</p></div><Button type="submit" disabled={saving}><Save />{saving ? "Saving…" : "Save changes"}</Button></div>
     {(resource.error || actionError) && <ApiError message={resource.error || actionError} />}
     {saved && <Alert variant="success"><Check /><AlertTitle>Settings saved</AlertTitle><AlertDescription>The database configuration is now active.</AlertDescription></Alert>}
     <div className="grid gap-5 lg:grid-cols-2">

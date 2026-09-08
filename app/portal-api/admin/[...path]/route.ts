@@ -14,7 +14,7 @@ async function forward(request: Request, context: Context) {
     headers: { 'Content-Type': request.headers.get('content-type') || 'application/json' },
   }, true)
   if (response.status === 401) (await cookies()).delete(adminCookieName)
-  return copyBackendResponse(response)
+  return copyBackendResponse(response, request.method)
 }
 
 export const GET = forward
